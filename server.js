@@ -33,10 +33,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/products', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
-    res.json(result.rows);
+    // ส่งเฉพาะ Array ข้อมูลกลับไป
+    res.json(result.rows || []);
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Server Error');
+    console.error('Database query error:', err);
+    // ถ้า DB มีปัญหา ให้ส่ง Array เปล่ากลับไปแทนเพื่อป้องกัน Frontend ค้าง
+    res.status(500).json([]);
   }
 });
 

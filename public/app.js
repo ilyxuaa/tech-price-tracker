@@ -1,25 +1,40 @@
 let chartInstance = null;
 
 async function loadProducts() {
-  const res = await fetch('/api/products');
-  const products = await res.json();
-  const grid = document.getElementById('productGrid');
-  
-  grid.innerHTML = products.map(p => `
-    <div class="product-card">
-      <small style="color: var(--text-muted);">${p.category} // ${p.brand}</small>
-      <h3>${p.model}</h3>
-      <ul class="store-list">
-        ${p.prices.map(pr => `
-          <li class="store-item">
-            <span>${pr.store}</span>
-            <strong>${pr.price ? '฿' + Number(pr.price).toLocaleString() : 'ไม่มีสินค้า'}</strong>
-          </li>
-        `).join('')}
-      </ul>
-      <button class="btn-detail" onclick="openHistory(${p.id}, '${p.model}')">ดูประวัติราคาเชิงลึก</button>
-    </div>
-  `).join('');
+  try {
+    const res = await fetch('/api/products');
+    const products = await res.json();
+    const grid = document.getElementById('productGrid');
+
+    // ดักจับกรณี products ไม่ใช่ Array
+    if (!Array.isArray(products) || products.length === 0) {
+      grid.innerHTML = '<p style="color: var(--text-muted); text-align: center;">ไม่พบข้อมูลสินค้า</p>';
+      return;
+    }
+
+    grid.innerHTML = products.map(p => `
+      <div class="product-card">
+        <small style="color: var(--text-muted);">${p.category || 'General'} // ${p.brand || ''}</small>
+        <h3>${p.model || p.name || 'N/A'}</h3>
+        <ul class="store-list">
+          ${Array.isArray(p.prices) && p.prices.length > 0 ? p.prices.map(pr => `
+            <li class="store-item">
+              <span>${pr.store}</span>
+              <strong>${pr.price ? '$' + Number(pr.price).toLocaleString() : 'ไม่มีสินค้า'}</strong>
+            </li>
+          `).join('') : `
+            <li class="store-item">
+              <span>ราคาล่าสุด</span>
+              <strong>${p.price ? '$' + Number(p.price).toLocaleString() : 'ไม่มีข้อมูลราคา'}</strong>
+            </li>
+          `}
+        </ul>
+        <button class="btn-detail" onclick="openHistory(${p.id}, '${p.model || p.name}')">ดูประวัติราคาเชิงลึก</button>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Error loading products:', err);
+  }
 }
 
 async function openHistory(productId, modelName) {
