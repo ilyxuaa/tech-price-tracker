@@ -17,11 +17,11 @@ async function autoInitDb() {
     const sqlPath = path.join(__dirname, 'init.sql');
     if (fs.existsSync(sqlPath)) {
       const sql = fs.readFileSync(sqlPath, 'utf8');
-      await pool.query(sql); // ตอนนี้ pool จะถูกนิยามเรียบร้อยแล้ว
+      await pool.query(sql);
       console.log('Database auto-initialized successfully!');
     }
   } catch (err) {
-    console.error('Error auto-initializing database:', err);
+    console.log('Database already initialized or duplicate keys skipped.');
   }
 }
 autoInitDb();
