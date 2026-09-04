@@ -1,0 +1,27 @@
+
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: tech_price_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: tech_pricedb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgdata:/var/lib/postgresql/data
+
+  web_app:
+    build: .
+    container_name: tech_price_app
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://admin:secretpassword@postgres_db:5432/tech_pricedb
+    depends_on:
+      - postgres_db
+
+volumes:
+  pgdata:

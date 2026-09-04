@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hardware Price Index</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="site-header">
+    <div class="logo">HARDWARE // INDEX</div>
+    <div class="status-tag">LIVE MARKET DATA</div>
+  </header>
+
+  <main class="container">
+    <section class="hero-section">
+      <h1>เปรียบเทียบราคาอุปกรณ์คอมพิวเตอร์แบบเรียลไทม์</h1>
+      <p>เช็กราคาจาก iHaveCPU, JIB, Advice และ BaNANA ในที่เดียว</p>
+    </section>
+
+    <section class="product-grid" id="productGrid"></section>
+
+    <div id="graphModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">ประวัติราคาเชิงลึก</h2>
+          <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="priceChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
