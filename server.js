@@ -20,16 +20,30 @@ const pool = new Pool({
 });
 
 // 4. สั่งรัน init.sql อัตโนมัติสร้างตาราง
+// 4. บังคับตรวจสอบและสร้างตาราง users อัตโนมัติเมื่อ Server เริ่มทำงาน
 async function autoInitDb() {
   try {
+    // สั่งสร้างตาราง users โดยตรง
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          username VARCHAR(50) UNIQUE NOT NULL,
+          email VARCHAR(100) UNIQUE NOT NULL,
+          password_hash VARCHAR(255) NOT NULL,
+          role VARCHAR(20) DEFAULT 'user',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✅ Table "users" checked/created successfully!');
+
+    // รันไฟล์ init.sql สำหรับข้อมูลอื่นๆ ตามปกติ
     const sqlPath = path.join(__dirname, 'init.sql');
     if (fs.existsSync(sqlPath)) {
       const sql = fs.readFileSync(sqlPath, 'utf8');
       await pool.query(sql);
-      console.log('Database auto-initialized successfully!');
     }
   } catch (err) {
-    console.log('Database already initialized or duplicate keys skipped.');
+    console.log('DB setup initialized (tables exist or skipped duplicate values).');
   }
 }
 autoInitDb();
