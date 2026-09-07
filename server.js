@@ -2,48 +2,67 @@ const express = require('express');
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
-
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const app = express();
+app.use(express.json());
 
-// 1. เชื่อมต่อ PostgreSQL Database
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-// 2. สั่งรัน init.sql อัตโนมัติ พร้อมดักจับข้อผิดพลาด
-async function autoInitDb() {
+// --- Middleware ตรวจสิทธิ์ Admin ---
+function verifyAdmin(req, res, next) {
+  const token = req.headers['authorization'];
+  if (!token) return res.status(401).send('Access Denied');
+
   try {
-    const sqlPath = path.join(__dirname, 'init.sql');
-    if (fs.existsSync(sqlPath)) {
-      const sql = fs.readFileSync(sqlPath, 'utf8');
-      await pool.query(sql);
-      console.log('Database auto-initialized successfully!');
+    const verified = jwt.verify(token, 'SECRET_KEY_HERE');
+    if (verified.role !== 'admin') {
+      return res.status(403).send('Forbidden: Admin only');
     }
+    req.user = verified;
+    next();
   } catch (err) {
-    console.log('Database already initialized or duplicate keys skipped.');
+    res.status(400).send('Invalid Token');
   }
 }
-autoInitDb();
 
-// 3. กำหนด Static Folder สำหรับหน้าเว็บ (Public UI)
-app.use(express.static(path.join(__dirname, 'public')));
-
-// 4. API Endpoint ดึงข้อมูลสินค้า
-app.get('/api/products', async (req, res) => {
+// --- API สำหรับ Register / Login (เพิ่มไว้ตรงนี้) ---
+app.post('/api/register', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
-    // ส่งเฉพาะ Array ข้อมูลกลับไป
-    res.json(result.rows || []);
+    const { username, email, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await pool.query(
+      'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3)',
+      [username, email, hashedPassword]
+    );
+    res.json({ message: 'User registered successfully' });
   } catch (err) {
-    console.error('Database query error:', err);
-    // ถ้า DB มีปัญหา ให้ส่ง Array เปล่ากลับไปแทนเพื่อป้องกัน Frontend ค้าง
-    res.status(500).json([]);
+    res.status(500).send('Error registering user');
   }
 });
 
-// 5. สั่งให้ Express ฟังพอร์ต 24 ชั่วโมง (ป้องกัน App exited early)
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    if (result.rows.length === 0) return res.status(400).send('User not found');
+
+    const user = result.rows[0];
+    const validPass = await bcrypt.compare(password, user.password_hash);
+    if (!validPass) return res.status(400).send('Invalid password');
+
+    const token = jwt.sign({ id: user.id, role: user.role }, 'SECRET_KEY_HERE');
+    res.json({ token, role: user.role });
+  } catch (err) {
+    res.status(500).send('Error logging in');
+  }
+});
+
+// --- app.listen() ต้องอยู่ล่างสุดเสมอ! ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-});
+}); 

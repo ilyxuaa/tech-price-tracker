@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard // Hardware Index</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body style="padding: 2rem; background: #0f172a; color: #fff;">
+  <div style="max-width: 500px; margin: 0 auto; background: #1e293b; padding: 2rem; border-radius: 8px;">
+    <h2>ระบบจัดการสินค้า (Admin Only)</h2>
+    <form id="addProductForm" style="margin-top: 1rem;">
+      <input type="text" id="category" placeholder="หมวดหมู่ (เช่น CPU, GPU)" required style="width:100%; margin-bottom:1rem; padding:8px;">
+      <input type="text" id="brand" placeholder="แบรนด์ (เช่น Intel, AMD)" required style="width:100%; margin-bottom:1rem; padding:8px;">
+      <input type="text" id="model" placeholder="รุ่นสินค้า (เช่น Core i5-14600K)" required style="width:100%; margin-bottom:1rem; padding:8px;">
+      <input type="number" id="price" placeholder="ราคาปัจจุบัน ($)" required style="width:100%; margin-bottom:1rem; padding:8px;">
+      <button type="submit" style="width:100%; padding:10px; background:#10b981; color:#fff; border:none; cursor:pointer; font-weight:bold;">+ เพิ่มสินค้าเข้าระบบ</button>
+    </form>
+    <a href="/" style="display:inline-block; margin-top:1rem; color:#94a3b8;">← กลับหน้าหลัก</a>
+  </div>
+
+  <script>
+    // ตรวจสอบสิทธิ์เบื้องต้นก่อนเข้าหน้า
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    if (!token || role !== 'admin') {
+      alert('เฉพาะ Admin เท่านั้นที่เข้าถึงหน้านี้ได้');
+      window.location.href = '/login.html';
+    }
+
+    // ฟังก์ชันส่งข้อมูลเพิ่มสินค้า
+    document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newProduct = {
+        category: document.getElementById('category').value,
+        brand: document.getElementById('brand').value,
+        model: document.getElementById('model').value,
+        price: document.getElementById('price').value
+      };
+
+      const res = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify(newProduct)
+      });
+
+      if (res.ok) {
+        alert('เพิ่มสินค้าเรียบร้อยแล้ว!');
+        document.getElementById('addProductForm').reset();
+      } else {
+        alert('เกิดข้อผิดพลาด หรือสิทธิ์ไม่ถูกต้อง');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -64,3 +64,13 @@ INSERT INTO price_history (product_id, store_name, price, recorded_at) VALUES
 (9, 'Advice', 15900, '2026-06-01'),
 (9, 'Advice', 15200, '2026-07-01'),
 (9, 'Advice', 14850, '2026-08-01');
+
+-- สร้างตาราง users
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) DEFAULT 'user', -- 'user' หรือ 'admin'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
