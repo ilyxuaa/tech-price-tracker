@@ -10,7 +10,7 @@ const app = express();
 // 1. รองรับการอ่านข้อมูล JSON จากฟอร์ม
 app.use(express.json());
 
-// 2. สั่งให้ Express ดึงไฟล์หน้าเว็บจากโฟลเดอร์ public อัตโนมัติ (แก้ปัญหา Cannot GET /)
+// 2. สั่งให้ Express ดึงไฟล์หน้าเว็บจากโฟลเดอร์ public อัตโนมัติ
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 3. เชื่อมต่อ PostgreSQL Database
@@ -19,7 +19,7 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-// 4. สั่งรัน init.sql อัตโนมัติ
+// 4. สั่งรัน init.sql อัตโนมัติสร้างตาราง
 async function autoInitDb() {
   try {
     const sqlPath = path.join(__dirname, 'init.sql');
@@ -37,17 +37,17 @@ autoInitDb();
 // --- Middleware ตรวจสิทธิ์ Admin ---
 function verifyAdmin(req, res, next) {
   const token = req.headers['authorization'];
-  if (!token) return res.status(401).send('Access Denied');
+  if (!token) return res.status(401).json({ message: 'Access Denied' });
 
   try {
     const verified = jwt.verify(token, 'SECRET_KEY_HERE');
     if (verified.role !== 'admin') {
-      return res.status(403).send('Forbidden: Admin only');
+      return res.status(403).json({ message: 'Forbidden: Admin only' });
     }
     req.user = verified;
     next();
   } catch (err) {
-    res.status(400).send('Invalid Token');
+    res.status(400).json({ message: 'Invalid Token' });
   }
 }
 
@@ -74,7 +74,8 @@ app.post('/api/register', async (req, res) => {
     );
     res.json({ message: 'User registered successfully' });
   } catch (err) {
-    res.status(500).send('Error registering user');
+    console.error(err);
+    res.status(500).json({ message: 'Error registering user' });
   }
 });
 
@@ -83,16 +84,23 @@ app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-    if (result.rows.length === 0) return res.status(400).send('User not found');
+    
+    if (result.rows.length === 0) {
+      return res.status(400).json({ message: 'User not found' });
+    }
 
     const user = result.rows[0];
     const validPass = await bcrypt.compare(password, user.password_hash);
-    if (!validPass) return res.status(400).send('Invalid password');
+    
+    if (!validPass) {
+      return res.status(400).json({ message: 'Invalid password' });
+    }
 
     const token = jwt.sign({ id: user.id, role: user.role }, 'SECRET_KEY_HERE');
     res.json({ token, role: user.role });
   } catch (err) {
-    res.status(500).send('Error logging in');
+    console.error('Login error:', err);
+    res.status(500).json({ message: 'Database issue or table missing' });
   }
 });
 
@@ -106,7 +114,8 @@ app.post('/api/admin/products', verifyAdmin, async (req, res) => {
     );
     res.json({ message: 'Product added successfully' });
   } catch (err) {
-    res.status(500).send('Error adding product');
+    console.error(err);
+    res.status(500).json({ message: 'Error adding product' });
   }
 });
 
