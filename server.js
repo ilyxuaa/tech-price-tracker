@@ -4,13 +4,35 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
 const app = express();
+
+// 1. รองรับการอ่านข้อมูล JSON จากฟอร์ม
 app.use(express.json());
 
+// 2. สั่งให้ Express ดึงไฟล์หน้าเว็บจากโฟลเดอร์ public อัตโนมัติ (แก้ปัญหา Cannot GET /)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 3. เชื่อมต่อ PostgreSQL Database
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
+
+// 4. สั่งรัน init.sql อัตโนมัติ
+async function autoInitDb() {
+  try {
+    const sqlPath = path.join(__dirname, 'init.sql');
+    if (fs.existsSync(sqlPath)) {
+      const sql = fs.readFileSync(sqlPath, 'utf8');
+      await pool.query(sql);
+      console.log('Database auto-initialized successfully!');
+    }
+  } catch (err) {
+    console.log('Database already initialized or duplicate keys skipped.');
+  }
+}
+autoInitDb();
 
 // --- Middleware ตรวจสิทธิ์ Admin ---
 function verifyAdmin(req, res, next) {
@@ -29,7 +51,19 @@ function verifyAdmin(req, res, next) {
   }
 }
 
-// --- API สำหรับ Register / Login (เพิ่มไว้ตรงนี้) ---
+// 5. API Endpoints
+// ดึงข้อมูลสินค้า
+app.get('/api/products', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
+    res.json(result.rows || []);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json([]);
+  }
+});
+
+// Register
 app.post('/api/register', async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -44,6 +78,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+// Login
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -61,8 +96,22 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// --- app.listen() ต้องอยู่ล่างสุดเสมอ! ---
+// Admin เพิ่มสินค้า
+app.post('/api/admin/products', verifyAdmin, async (req, res) => {
+  try {
+    const { category, brand, model, price } = req.body;
+    await pool.query(
+      'INSERT INTO products (category, brand, model, price) VALUES ($1, $2, $3, $4)',
+      [category, brand, model, price]
+    );
+    res.json({ message: 'Product added successfully' });
+  } catch (err) {
+    res.status(500).send('Error adding product');
+  }
+});
+
+// 6. สั่งเปิด Server ค้างไว้
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-}); 
+});
