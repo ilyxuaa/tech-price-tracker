@@ -74,3 +74,7 @@ INSERT INTO price_history (product_id, store_name, price, recorded_at) VALUES
 (9, 'Advice', 15900, '2026-06-01'),
 (9, 'Advice', 15200, '2026-07-01'),
 (9, 'Advice', 14850, '2026-08-01');
+
+-- เพิ่ม ON CONFLICT DO NOTHING เพื่อไม่ให้ไฟล์หยุดทำงานกลางคัน
+INSERT INTO store_prices ... ON CONFLICT DO NOTHING;
+INSERT INTO price_history ... ON CONFLICT DO NOTHING;
